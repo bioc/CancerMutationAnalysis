@@ -1,0 +1,358 @@
+% \VignetteIndexEntry{CancerMutationAnalysisTutorial}
+% \VignetteKeywords{Cancer mutation analysis}
+% \VignettePackage{CancerMutationAnalysis}
+
+\documentclass[11pt]{article}
+
+\usepackage{epsfig}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsxtra}
+\usepackage{graphicx,subfigure}
+\usepackage{vmargin}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\texttt{#1}}}
+\newcommand{\Rclass}[1]{{\texttt{#1}}}
+\newcommand{\Rmethod}[1]{{\texttt{#1}}}
+\newcommand{\Rfunarg}[1]{{\texttt{#1}}}
+
+\parindent 0in
+\setpapersize{USletter}
+\setmarginsrb{1truein}{0.5truein}{1truein}{0.5truein}{16pt}{30pt}{0pt}{20truept}
+\setlength{\emergencystretch}{2em}
+\usepackage{Sweave}\begin{document}
+
+\title{\Rpackage{CancerMutationAnalysis} package} 
+\author{Giovanni Parmigiani \\
+  Dana-Farber Cancer Institute and \\
+  Harvard School of Public Health \\ 
+  email: \texttt{gp@jimmy.harvard.edu}, \\ \\
+  Simina M. Boca \\
+  National Cancer Institute \\
+  email: \texttt{simina.boca@nih.gov}}
+
+\maketitle
+\tableofcontents
+
+\section{Overview}
+
+This package contains software which implements a variety of
+methods for gene and gene-set level analysis
+in somatic mutation studies of cancer. 
+The methods implemented are described in
+\cite{SjoblomEtAl2006} and \cite{ParmigianiEtAl2007},
+for the gene level analysis, and
+\cite{BocaEtAl2010}, for the gene-set level analysis.
+The gene level methods considered were developed to
+distinguish between ``driver genes'' 
+and ``passenger genes;'' the former play an
+active role in tumorigenesis, having mutations which
+are selected for in cancer, while the latter are mutated
+in tumor samples, but have no role in tumorigenesis.
+They incorporate the study design used in
+\cite{SjoblomEtAl2006, WoodEtAl2007, JonesEtAl2008, ParsonsEtAl2008, ParsonsEtAl2011}:
+The complete collection of coding exons (the exome) was
+sequenced in several ``discovery samples,'' with
+a smaller number of genes being further sequenced in
+a larger number of ``prevalence samples,'' based on 
+the results of the discovery screen, and possibly, on
+prior knowledge about their role in cancer.
+
+The gene-set methods implemented
+carry out the ``patient-oriented'' approach, 
+which calculates gene-set scores for each sample, then combines them
+across samples. By comparison, gene-oriented methods calculate a score
+for each gene across all samples, then combine them into gene-set scores.
+The four patient-oriented methods described in \cite{BocaEtAl2010}
+are included, as well as 
+the gene-oriented method described in
+\cite{MichaudEtAl2008} (see also \cite{SchaefferEtAl2008}), 
+which is in the \Rpackage{limma} package and performs
+a Wilcoxon test.
+Data from several comprehensive studies are also
+distributed with this package
+\citep{SjoblomEtAl2006, WoodEtAl2007, JonesEtAl2008, ParsonsEtAl2008, ParsonsEtAl2011}.
+
+This vignette represents an introduction to the 
+\Rpackage{CancerMutationAnalysis} package. The primary functions are:
+\Rfunction{cma.scores}, which calculates a variety of gene scores;
+\Rfunction{cma.fdr}, which estimates passenger probabilities and
+false discovery rates; and
+\Rfunction{cma.set.stat}, which implements a number
+of gene-set level methods.
+The function
+\Rfunction{cma.set.sim} performs gene-set simulations using either
+the permutation null or the passenger null (see \cite{BocaEtAl2010}).
+The functions \Rfunction{extract.sims.method} and \Rfunction{combine.sims}
+are used to manipulate the objects resulting from 
+\Rfunction{cma.set.sim}.
+
+\section{Data objects}
+
+We first load the data and look at them:
+<<LoadData, eval=TRUE>>=
+library(CancerMutationAnalysis)
+data(WoodBreast07)
+data(WoodColon07)
+data(JonesPancreas08)
+data(ParsonsGBM08)
+data(ParsonsMB11)
+@ 
+The datasets are labelled according to the publication year of the 
+study and the tumor type. Thus, data is available for
+studies of breast cancer, colon cancer, pancreatic cancer,
+glioblastoma multiforme (GBM), and medulloblastoma (MB).
+
+The objects containing information on the somatic mutations are
+labelled \texttt{GeneAlter*}. As an example, consider the 
+\texttt{GeneAlterGBM} object:
+<<GeneAlter, eval=TRUE>>=
+head(GeneAlterGBM)
+@ 
+The columns represent the transcript, mutation type 
+(\texttt{Mut}, \texttt{Amp}, \texttt{Del}, for point mutations,
+amplifications, and deletions, respectively), sample ID,
+screen (\texttt{Disc} or \texttt{Prev} for ``Discovery'' or
+``Prevalence''), wild type nucleotype, context, and nucleotide 
+after mutation. Only point mutations are used to calculate gene scores, estimate
+passenger probabilities, and perform gene-set level analyses.
+Only discovery samples are used to perform the set analyses.
+
+The \texttt{GeneCov*} objects contain data on the number of
+nucleotides of each type successfully sequenced for each transcript:
+<<GeneCov, eval=TRUE>>=
+head(GeneCovGBM)
+@ 
+
+The \texttt{GeneSamp*} objects store the number of discovery and
+prevalence samples for each transcript:
+<<GeneSamp, eval=TRUE>>=
+head(GeneSampGBM)
+@ 
+
+The \texttt{BackRates*} objects contain estimated passenger probabilities
+used in the original studies.
+
+\section{Calculating gene scores}
+
+Gene scores are obtained using the \texttt{cma.scores} function.
+These scores include the Cancer Mutation Prevalence (CaMP) score
+\citep{ParmigianiEtAl2007} and the
+log Likelihood Ratio (logLRT) score \citep{GetzEtAl2007}.
+They take into account
+the mutation profile and the total
+number of nucleotides successfully sequenced for each gene, as well as
+an estimated ``background passenger rate'' of mutation:
+
+<<CalcScores, eval=TRUE>>=
+ScoresGBM <- cma.scores(cma.alter = GeneAlterGBM,
+                        cma.cov = GeneCovGBM,
+                        cma.samp = GeneSampGBM,
+                        passenger.rates = BackRatesGBM["MedianRates",])
+
+head(ScoresGBM)
+@ 
+
+\section{Estimating passenger probabilities}
+
+Passenger probabilities for individual genes are estimated using the
+\texttt{cma.fdr} function, which performs an empirical Bayes (EB)
+analysis. 
+The output of this function is a list,
+each score having an entry which, for each gene, 
+gives the corresponding score, the number of
+genes with scores greater or equal in the dataset
+(\texttt{F}), the average number of genes with scores
+greater or equal in the simulated datasets
+(\texttt{F0}), the estimated false discovery rate
+(\texttt{Fdr}), the estimated local false discovery rate
+(\texttt{fdr}), and the estimated value of the prior probability
+of the gene being null (\texttt{p0}).
+The estimated passenger probabilities for individual genes are the estimate
+local false discovery rates.
+If \texttt{showFigure=TRUE}, a plot is also generated for each score,
+displaying the right tail of the density of null scores and
+a 1-D ``rug plot'' histogram of the observed scores.
+A cutoff is chosen so that the false discovery rate has the
+largest possible value below it. See
+Figure \ref{fig:Fdr} for an example.
+<<FdrFig, height=8, width=8, echo=TRUE, include=FALSE>>=
+set.seed(188310)
+FdrGBM <-  cma.fdr(cma.alter = GeneAlterGBM,
+                   cma.cov = GeneCovGBM,
+                   cma.samp = GeneSampGBM,
+                   scores = "logLRT",
+                   passenger.rates = BackRatesGBM["MedianRates",],
+                   showFigure=TRUE,
+                   cutoffFdr=0.1,
+                   M = 5)
+
+head(FdrGBM[["logLRT"]])
+@ 
+\begin{figure}
+  \caption{Example of figure obtained by setting \texttt{showFigure=TRUE}
+in the \texttt{cma.fdr} function.}
+\begin{center}
+<<label=FdrFig-here, fig=TRUE, echo=FALSE>>=
+<<FdrFig>>
+@ 
+\end{center}
+  \label{fig:Fdr}
+\end{figure}
+
+\section{Performing gene-set analyses}
+
+The function \Rfunction{cma.set.stat} returns a data-frame with 
+p-values and q-values for all the methods selected. By default, all the
+methods are implemented; however this takes several minutes.
+Setting the \texttt{gene.method} parameter to \texttt{TRUE} implements
+the gene-oriented method. The other method parameters refer to
+the patient-oriented methods:
+\texttt{perm.null.method} refers to the permutation null without heterogeneity,
+\texttt{perm.null.het.method} to the permutation null with heterogeneity,
+\texttt{pass.null.method} to the passenger null without heterogeneity, and
+\texttt{pass.null.het.method} to the passenger null with heterogeneity.
+See \cite{BocaEtAl2010} for more details on all these methods
+and \cite{LinEtAl2007} for a related method.
+
+We use gene-sets from KEGG \citep{KanehisaAndGoto2000} in this example through the \texttt{KEGG.db}
+package \citep{CarlsonEtAl2007}:
+<<loadKEGGsets, eval=TRUE>>=
+library(KEGG.db)
+KEGGPATHID2EXTID
+@ 
+
+Since the genes in the GBM datasets are annotated by gene names,
+while \texttt{KEGGPATHID2EXTID} uses EntrezGene identifiers,
+we also need to load the vector mapping the identifiers to the names,
+which we obtained by using the \texttt{biomaRt} package \citep{DurinkEtAl}.
+<<loadEntrezID2Name>>=
+data(EntrezID2Name)
+@ 
+
+We now use the function \texttt{cma.set.stat} to perform the gene-set
+analyses on three KEGG sets:
+<<GeneSet, eval=TRUE>>=
+as.character(KEGGPATHNAME2ID[c("Endometrial cancer", 
+                               "Non-small cell lung cancer",
+                               "Alanine, aspartate and glutamate metabolism")])
+
+SetResultsGBM <-
+  cma.set.stat(cma.alter = GeneAlterGBM,
+               cma.cov = GeneCovGBM,
+               cma.samp = GeneSampGBM,
+               GeneSets = KEGGPATHID2EXTID[c("hsa05213", 
+                 "hsa05223",  "hsa00250")],
+               ID2name = EntrezID2Name,
+               gene.method = FALSE,
+               perm.null.method = TRUE,
+               perm.null.het.method = FALSE,
+               pass.null.method = TRUE,
+               pass.null.het.method = FALSE)
+@ 
+
+The resulting object is a data-frame containing p-values and q-values
+for the methods which were implemented:
+
+<<showGBMSetResults, eval=TRUE>>=
+SetResultsGBM
+@ 
+
+\section{Simulating data for gene-sets}
+
+We now demonstrate the use of the \texttt{cma.set.sim} function,
+which simulates datasets under either the permutation or passenger null
+(see \cite{BocaEtAl2010}), depending on whether \texttt{pass.null} is set
+to \texttt{TRUE} or \texttt{FALSE}, and calculates the p-values and q-values
+for those datasets for the selected methods. The simulations may also
+include spiked-in gene-sets, by using the \texttt{perc.samples} and
+\texttt{spiked.set.sizes} options. For example, if one desires to have two 
+spiked-in gene-sets, both having $50$ genes, but one having the probability 
+of being altered in any given sample of $0.75$ and the other of $0.95$, then 
+these parameters should be set to \texttt{perc.samples = c(75, 90)} and
+\texttt{spiked.set.sizes = 50}. The spiked-in gene-sets are artificially created
+with hypothetical genes (for more details on how they are generated, 
+see \cite{BocaEtAl2010}). 
+To simulate the data without spiked-in sets, under the permutation or
+passenger null hypotheses, the parameters should be set as following:
+\texttt{perc.samples = NULL, spiked.set.sizes = NULL}.
+The object outputted by 
+\texttt{cma.set.sim} is of the class \texttt{SetMethodsSims}.
+Note that this code takes several minutes to run:
+
+<<simDataSets, eval=TRUE>>=
+set.seed(831984)
+
+resultsSim <- 
+    cma.set.sim(cma.alter = GeneAlterGBM,
+                cma.cov = GeneCovGBM,
+                cma.samp = GeneSampGBM,
+                GeneSets = KEGGPATHID2EXTID[c("hsa05213", 
+                  "hsa05223", "hsa00250")],
+                ID2name = EntrezID2Name,
+                nr.iter = 2,
+                pass.null = TRUE,
+                perc.samples = c(75, 95),
+                spiked.set.sizes = c(50),
+                show.iter = TRUE,
+                gene.method = FALSE,
+                perm.null.method = TRUE,
+                perm.null.het.method = FALSE,
+                pass.null.method = TRUE,
+                pass.null.het.method = FALSE)
+
+resultsSim
+
+slotNames(resultsSim)
+
+resultsSim@null.dist
+@ 
+
+\subsection{Manipulating the \texttt{SetMethodsSims} objects}
+
+We provide $2$ functions to help manipulate the \texttt{SetMethodsSims} objects
+which result from the \texttt{cma.set.sim} function:
+\texttt{extract.sims.method} and \texttt{combine.sims}. The
+\texttt{extract.sims.method} function is used to obtain a single data frame
+with the p-values or q-values from one of the specific methods. For instance,
+the command to get the p-values for the permutation null with no
+heterogeneity method is:
+
+<<extractSimMethod, eval=TRUE>>=
+extract.sims.method(resultsSim,
+                    "p.values.perm.null")
+
+@ 
+
+The function \texttt{combine.sims} may be used to combine $2$ simulations:
+
+<<combineSims, eval=TRUE>>=
+combine.sims(resultsSim, resultsSim)
+@ 
+
+\bibliographystyle{plain}
+\bibliography{CancerMutationAnalysis}
+
+\section{Acknowledgments}
+We would like to thank Michael A. Newton and Luigi Marchionni for generously sharing their code and
+Benjamin Langmead, Fernando Pineda, and Michael Ochs for some very
+helpful discussions.
+
+
+
+\end{document}
+
+
+
+
+
+
+
+\end{document}
+

@@ -1,0 +1,20 @@
+useDynLib(CancerMutationAnalysis, cdf)
+
+export(cma.scores, cma.fdr, cma.set.stat, cma.set.sim,
+       extract.sims.method, combine.sims)
+exportClasses("SetMethodsSims")
+exportMethods("show")
+
+importClassesFrom(methods, character, list, numeric)
+
+importMethodsFrom(AnnotationDbi, as.list, colnames, ncol, nrow, sample)
+
+importMethodsFrom(methods, show)
+
+importFrom(limma, geneSetTest)
+
+importFrom(methods, "@<-", new)
+
+importFrom(stats, dbinom, dmultinom, pbeta, rbinom, rmultinom, rnorm,
+           runif)
+
