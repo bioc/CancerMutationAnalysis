@@ -3,8 +3,6 @@
 ##obs.vect = vector of observed test statistics
 get.p.vals.from.q.probs.het <- function(q, lin.comb, obs)
   {
-    ##print("Oh yeah! Minus 3! Go me!")
-    
     ##sum all the probabilities to get as many or more altered samples as observed (note that the probabilities in prob.altered.samples start at 0)
     p.vals.direct <-
       1 - get.cdf.het.berns(n = length(q),

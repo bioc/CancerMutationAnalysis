@@ -9,7 +9,7 @@ function(n, j, theta.n, alpha.n)
   returnvalue <- .C("cdf",as.integer(n),as.double(j),
                     as.double(theta.n), as.double(alpha.n),
                     result=double(1),
-                    PACKAGE="PatientGeneSets")
+                    PACKAGE="CancerMutationAnalysis")
   cdf <- returnvalue$result
   
   cdf    
