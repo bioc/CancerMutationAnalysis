@@ -19,7 +19,7 @@ pass.null.het.p.values <- function(GeneSets,
     passenger.rates.mat <- passenger.rates.mat*sample.constants
 
     ##get probability of A not getting mutated, T not getting mutated etc., under the passenger null
-    prob.nucl.not.alt.mat <- matrix(0,ncol=length(GoodSamples),nrow=ncol(Coverage))
+    prob.nucl.not.alt.mat <- matrix(0,ncol=length(GoodSamples),nrow=9)
     colnames(prob.nucl.not.alt.mat) <- GoodSamples
     rownames(prob.nucl.not.alt.mat) <- c("C.in.CpG", "G.in.CpG", "G.in.GpA" , "C.in.TpC",
                                          "A", "C.not.in.CpG.or.TpC", "G.not.in.CpG.or.GpA",
