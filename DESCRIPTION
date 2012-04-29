@@ -16,6 +16,6 @@ Description: This package implements gene and gene-set level analysis
   patient-oriented approach, which calculates gene-set scores for each
   sample, then combines them across samples; a gene-oriented approach
   which uses the Wilcoxon test is also provided for comparison.
-BiocViews: Genetics, Bioinformatics
+biocViews: Genetics, Bioinformatics
 License: GPL (>= 2) + file LICENSE
 LazyLoad: yes
