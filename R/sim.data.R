@@ -28,22 +28,22 @@ sim.data <- function(cma.cov,
 {
   cma.cov <- as.data.frame(cma.cov)
   cma.samp <- as.data.frame(cma.samp)
-  
+
   ##first create coverage object
   Coverage <- make.cov.obj(cma.cov, cma.samp)
-    
+
   ##get the gene symbols
   GeneNames <- rownames(Coverage)
   GeneSymb <- shorten.gene.names(GeneNames)
-  
+
   EventsBySample <- EventsBySample[EventsBySample$Event=="Mut",]
-  
+
   ##remove mutations in mountains
   if (exclude.mountains) {
     EventsBySample <-
       EventsBySample[!(EventsBySample[, "Symbol"] %in% KnownMountains), ]
   }
-  
+
   ##create vectors of names of spiked sets and names of spiked genes ("fake sets" and "fake genes"),
   fake.sets <- c()
   fake.genes <- c()
@@ -69,24 +69,24 @@ sim.data <- function(cma.cov,
         }
       fake.transcripts <- paste(fake.genes, "@@00", sep="")
     }
-  
+
   ##get number of events in each sample
   nr.events.sample <- rep(0, length(GoodSamples))
   names(nr.events.sample) <- GoodSamples
-  
+
   for(sample in GoodSamples)
     {
       nr.events.sample[sample] <-
         nrow(EventsBySample[EventsBySample[, "Sample"] == sample, ])
     }
-  
+
   ##create objects for simulated data
   sim.Coverage <- list()
   sim.Scores <- list()
   sim.cma.alter <- list()
   sim.cma.cov <- list()
   sim.cma.samp <- list()
-    
+
   ##create a vector of correspondence between transcript name and gene-name
   transcripts <- c(rownames(Coverage), fake.transcripts)
   transcripts2genes <- shorten.gene.names(transcripts)
@@ -97,25 +97,25 @@ sim.data <- function(cma.cov,
                                 "A","C.not.in.CpG.or.TpC","G.not.in.CpG.or.GpA",
                                 "T"), each = 3), "ins.del")
   names(mutations2contexts) <- names(passenger.rates)
-  
+
   ##create a vector of correspondence between mutation types preceded by
   ##"MutationsDiscovery." and mutation types
   mutations2add <- names(passenger.rates)
-  
+
   names(mutations2add) <- paste("MutationsDiscovery.",
                                 names(passenger.rates),
                                 sep="")
-  
+
   for(i in 1:nr.iterations)
     {
       message(paste("Currently simulating data: Iteration #", i, sep=""))
       message(date())
-      
+
       sim.EventsBySample.i <- c()
-      
+
       ##if there are no spiked-in genes, keep same Coverage object
       sim.Coverage.i <- Coverage
-      
+
       ##if there are spiked-in genes, then these objects will be augmented
       ##by some randomly selected coverages and sizes for the spike-ins
       if(length(spiked.set.sizes) > 0)
@@ -123,13 +123,13 @@ sim.data <- function(cma.cov,
           ##randomly sample some genes
           sampled.genes <- sample(rownames(Coverage),
                                   length(fake.transcripts))
-          
+
           sim.Coverage.i[fake.transcripts,] <-
             Coverage[sampled.genes,]
         }
-      
+
       sim.Coverage[[i]] <- sim.Coverage.i
-            
+
       ##create object with expected number of mutations, given the coverages and
       ##background rates
       sim.exp.nr.mut.i <-
@@ -138,14 +138,14 @@ sim.data <- function(cma.cov,
                      ncol = 25, byrow = TRUE)
       rownames(sim.exp.nr.mut.i) <- rownames(sim.Coverage.i)
       colnames(sim.exp.nr.mut.i) <- names(passenger.rates)
-      
+
       if(pass.null)
       {
           ##get sample-specific constants we're multiplying the passenger null by
           sample.constants <- matrix(rep(nr.events.sample/mean(nr.events.sample),
                                          each=length(passenger.rates)),ncol=length(GoodSamples))
           colnames(sample.constants) <- GoodSamples
-          
+
           ##make matrix of sample-specific passenger rates
           ##each column represents a sample
           ##(so columns differ just by a multiplicative constant)
@@ -155,7 +155,7 @@ sim.data <- function(cma.cov,
           colnames(passenger.rates.mat) <- GoodSamples
           rownames(passenger.rates.mat) <- names(passenger.rates)
           passenger.rates.mat <- passenger.rates.mat*sample.constants
-          
+
           ##distribute events over genes for non-spiked-in gene-sets
           for(sample in names(nr.events.sample))
           {
@@ -166,26 +166,26 @@ sim.data <- function(cma.cov,
             cma.cov.sample$Coverage <- cma.cov$Coverage/length(GoodSamples)
             cma.samp.sample <- cma.samp
             cma.samp.sample$NrSamp[cma.samp.sample$NrSamp != 0] <- 1
-            
+
             Mut <- cma.simulator(cma.cov = cma.cov.sample,
                                  cma.samp = cma.samp.sample,
                                  passenger.rates =
                                  t(data.frame(passenger.rates.mat[,sample])),
                                  eliminate.noval = FALSE)
-            
+
             genes.with.events <- c()
             contexts <- c()
-            
+
             ##get the rownames with mutations
             Mut.nonzero <- Mut[rowSums(Mut[,1:25]) > 0,]
-            
+
             ##get the number of events for each gene
             nr.events.for.gene <- rowSums(Mut.nonzero[,1:25])
-            
+
             ##write out the genes that have events
             genes.with.events <- rep(rownames(Mut.nonzero),
                                      nr.events.for.gene)
-            
+
             ##transform Mut.nonzero into a vector to make it easier to manipulate
             Mut.nonzero.as.vect <-
               as.vector(t(as.matrix(Mut.nonzero[,1:25])))
@@ -193,19 +193,19 @@ sim.data <- function(cma.cov,
             types <- rep(rep(colnames(Mut.nonzero[,1:25]),
                              times = nrow(Mut.nonzero)),
                          Mut.nonzero.as.vect)
-            
+
             ##get the number of events of each type
             events.per.type <-
               Mut.nonzero.as.vect[Mut.nonzero.as.vect > 0]
-            
+
             contexts <- types
-            
+
             ##add stuff to sim.EventsBySample.i
             sim.EventsBySample.i <- rbind(sim.EventsBySample.i,
                                           cbind("Mut", sample,
                                                 shorten.gene.names(genes.with.events),
                                                 mutations2add[contexts]))
-            
+
             ##see if sample is altered for each of the spiked-in gene-sets
             ##considered
             unifs <- matrix(runif(length(perc.samples)*length(spiked.set.sizes), 0, 1),
@@ -344,12 +344,12 @@ sim.data <- function(cma.cov,
       rownames(sim.EventsBySample.i) <- NULL
 
       sim.EventsBySample.i <- as.data.frame(sim.EventsBySample.i)
-      
+
       ##make cma.alter, cma.cov, and cma.samp objects
       WT <- rep("", nrow(sim.EventsBySample.i))
       Mut <- rep("", nrow(sim.EventsBySample.i))
       Context <- rep("", nrow(sim.EventsBySample.i))
-   
+
       for(j in 1:nrow(sim.EventsBySample.i))
         {
           if(length(grep("A.to.", sim.EventsBySample.i[j,4])) > 0)
@@ -404,7 +404,7 @@ sim.data <- function(cma.cov,
               Context[j] <- "All"
             }
         }
-      
+
       sim.cma.alter.i <- data.frame(Gene = sim.EventsBySample.i$Symbol,
                                     Type = sim.EventsBySample.i$Event,
                                     Sample = sim.EventsBySample.i$Sample,
@@ -412,16 +412,16 @@ sim.data <- function(cma.cov,
                                     WTNuc = WT,
                                     Context = Context,
                                     MutNuc = Mut)
-      
+
       GeneSymb <- shorten.gene.names(rownames(sim.Coverage[[i]]))
-      
+
       cc <- sim.Coverage[[i]][!duplicated(GeneSymb),]
       rownames(cc) <- unique(GeneSymb)
 
       ##make coverage object
       sim.cma.cov.i <- data.frame(Gene = rep(rownames(cc), each=18),
                                   Screen = c("Disc","Prev"),
-                                  WtNuc = rep(c("C","G","G","C",
+                                  WTNuc = rep(c("C","G","G","C",
                                     "A","C","G","T",""),
                                     each = 2),
                                   Context = rep(c("CpG","CpG","GpA","TpC",
@@ -430,7 +430,7 @@ sim.data <- function(cma.cov,
                                   Coverage =
                                   as.numeric(unlist(t(cc[,c(1,10,2,11,3,12,4,13,5,14,6,15,
                                                             7,16,8,17,9,18)]))))
-      
+
       ##make object with number of samples in which each gene is sequenced
       sim.cma.samp.i <- data.frame(Gene = rep(rownames(cc), each=2),
                                    Screen = c("Disc","Prev"),
@@ -445,7 +445,7 @@ sim.data <- function(cma.cov,
       sim.cma.cov[[i]] <- sim.cma.cov.i
       sim.cma.samp[[i]] <- sim.cma.samp.i
     }
-    
+
     return(list(GeneSets = GeneSets,
                 cma.alter = sim.cma.alter,
                 cma.cov = sim.cma.cov,

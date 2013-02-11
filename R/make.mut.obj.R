@@ -2,9 +2,9 @@ make.mut.obj <- function(cma.cov, Cov, cma.alter, pass.rates)
   {
     ##get rid of genes named "NULL"
     cma.alter <- cma.alter[cma.alter$Gene != "NULL",]
-    
+
     ##create mutations object
-    tempCols <- as.character(cma.cov$WtNuc[(1:9)*2-1])
+    tempCols <- as.character(cma.cov$WTNuc[(1:9)*2-1])
     ##label indel column
     tempCols[tempCols == ""] <- "ins.del"
     tempCols2 <- as.character(cma.cov$Context[(1:9)*2-1])
@@ -29,7 +29,7 @@ make.mut.obj <- function(cma.cov, Cov, cma.alter, pass.rates)
     tempCols <- c(paste("MutationsDiscovery",tempCols,sep="."),
                   paste("MutationsValidation",tempCols,sep="."))
     tempCols <- c(tempCols, colnames(Cov))
-    
+
     cma.data <- matrix(0, nrow =
                        length(unique(cma.alter$Gene[cma.alter$Type=="Mut"])),
                        ncol = length(tempCols))
@@ -133,7 +133,7 @@ make.mut.obj <- function(cma.cov, Cov, cma.alter, pass.rates)
     {
       stop("There's a problem with the rates object - check the names!")
     }
-    
+
     return(list(cma.data = cma.data,
                 passenger.rates = pass.rates))
   }

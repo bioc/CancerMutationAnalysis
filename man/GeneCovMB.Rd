@@ -15,12 +15,12 @@ medulloblastoma (MB) study.}
   broken down by \emph{gene}, \emph{screen} (Discovery or Prevalence),
   and \emph{mutation type}, composed of the wild type nucleotide
   and its context. The object is a data frame, with the
-  variables: Gene, Screen, WtNuc (wild type nucleotide),
+  variables: Gene, Screen, WTNuc (wild type nucleotide),
   Context, and Coverage. The two possible values
   for Screen are Disc ("Discovery") and Prev ("Prevalence").
   The nucleotides availables for indels are all the successfully
   sequenced nucleotides in a gene; the corresponding rows
-  have a "" entry for WtNuc and an "All" entry for "Context."
+  have a "" entry for WTNuc and an "All" entry for "Context."
   The nucleotides availables for other
   mutations are excluding nucleotides which can only give rise to
   synonymous mutations. 
