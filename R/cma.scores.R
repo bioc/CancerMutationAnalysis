@@ -102,10 +102,10 @@ cma.scores <- function(cma.alter = NULL,
   }
   if (nG==1) {
     t1 <- cma.data[,ColCovDisc]
-    t2 <- as.real( rep(t1,3)[c(8*(0:2)+1,8*(0:2)+2,8*(0:2)+3,8*(0:2)+4,8*(0:2)+5,8*(0:2)+6,8*(0:2)+7,8*(0:2)+8)]  )
+    t2 <- as.double( rep(t1,3)[c(8*(0:2)+1,8*(0:2)+2,8*(0:2)+3,8*(0:2)+4,8*(0:2)+5,8*(0:2)+6,8*(0:2)+7,8*(0:2)+8)]  )
     tnsD <- t ( as.matrix( round ( c(t2,cma.data[,ColCovValiIndel]) ) ) )
     t1 <- cma.data[,ColCovVali]
-    t2 <- as.real( rep(t1,3)[c(8*(0:2)+1,8*(0:2)+2,8*(0:2)+3,8*(0:2)+4,8*(0:2)+5,8*(0:2)+6,8*(0:2)+7,8*(0:2)+8)]  )
+    t2 <- as.double( rep(t1,3)[c(8*(0:2)+1,8*(0:2)+2,8*(0:2)+3,8*(0:2)+4,8*(0:2)+5,8*(0:2)+6,8*(0:2)+7,8*(0:2)+8)]  )
     tnsV <- t ( as.matrix( round ( c(t2,cma.data[,ColCovValiIndel]) ) ) )
     tns <- tnsD + tnsV
   }
