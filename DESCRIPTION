@@ -3,7 +3,7 @@ Type: Package
 Title: Cancer mutation analysis
 Version: 1.10.0
 Author: Giovanni Parmigiani, Simina M. Boca
-Maintainer: Simina M. Boca <simina.boca@nih.gov>
+Maintainer: Simina M. Boca <smb310@georgetown.edu>
 Imports: AnnotationDbi, limma, methods, stats
 Depends: R (>= 2.10.0), qvalue
 Suggests: KEGG.db
