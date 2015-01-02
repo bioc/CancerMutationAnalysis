@@ -34,8 +34,8 @@
   Harvard School of Public Health \\ 
   email: \texttt{gp@jimmy.harvard.edu}, \\ \\
   Simina M. Boca \\
-  National Cancer Institute \\
-  email: \texttt{simina.boca@nih.gov}}
+  Georgetown University Medical Center \\
+  email: \texttt{smb310@georgetown.edu}}
 
 \maketitle
 \tableofcontents
