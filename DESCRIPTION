@@ -1,7 +1,7 @@
 Package: CancerMutationAnalysis
 Type: Package
 Title: Cancer mutation analysis
-Version: 1.17.0
+Version: 1.18.0
 Author: Giovanni Parmigiani, Simina M. Boca
 Maintainer: Simina M. Boca <smb310@georgetown.edu>
 Imports: AnnotationDbi, limma, methods, stats
